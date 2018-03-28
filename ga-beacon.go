@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"appengine"
 	"appengine/delay"
@@ -26,7 +27,7 @@ var (
 	badgeGif     = mustReadFile("static/badge.gif")
 	badgeFlat    = mustReadFile("static/badge-flat.svg")
 	badgeFlatGif = mustReadFile("static/badge-flat.gif")
-	pageTemplate = template.Must(template.New("page").ParseFiles("ga-beacon/page.html"))
+	pageTemplate = template.Must(template.New("page").ParseFiles("page.html"))
 )
 
 func init() {
@@ -101,25 +102,25 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	// / -> redirect
 	if len(params[0]) == 0 {
-		http.Redirect(w, r, "https://github.com/vitr/google-analytics-beacon", http.StatusFound)
+		http.Redirect(w, r, "https://github.com/cajinajr/Abacus-eBay-GA-beacon", http.StatusFound)
 		return
 	}
 
-	// check allowed Tracking Ids
-	config := readConfig("ga-beacon/conf.json")
+	// check allowed Tracking IDs
+	config := readConfig("conf.json")
 	if !checkTrackingId(params[0], config.TrackingIds) {
-		http.Error(w, "Forbidden, read https://github.com/vitr/google-analytics-beacon", 403)
+		http.Error(w, "Forbidden, read https://github.com/cajinajr/Abacus-eBay-GA-beacon", 403)
 		return
 	}
 
 	// activate referrer path if ?useReferer is used and if referer exists
 	if _, ok := query["useReferer"]; ok {
 		if len(refOrg) != 0 {
-			referer := strings.Replace(strings.Replace(refOrg, "http://", "", 1), "https://", "", 1);
+			referer := strings.Replace(strings.Replace(refOrg, "http://", "", 1), "https://", "", 1)
 			if len(referer) != 0 {
 				// if the useReferer is present and the referer information exists
 				//  the path is ignored and the beacon referer information is used instead.
-				params = strings.SplitN(strings.Trim(r.URL.Path, "/") + "/" + referer, "/", 2)
+				params = strings.SplitN(strings.Trim(r.URL.Path, "/")+"/"+referer, "/", 2)
 			}
 		}
 	}
@@ -154,7 +155,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(cid) != 0 {
-		w.Header().Set("Cache-Control", "no-cache")
+		var cacheUntil = time.Now().Format(http.TimeFormat)
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
+		w.Header().Set("Expires", cacheUntil)
 		w.Header().Set("CID", cid)
 
 		logHit(c, params, query, r.Header.Get("User-Agent"), r.RemoteAddr, cid)
@@ -178,31 +181,4 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		w.Write(badge)
 	}
-}
-
-type Configuration struct {
-	TrackingIds []string
-}
-
-func readConfig(path string) Configuration {
-	file, _ := os.Open(path)
-	decoder := json.NewDecoder(file)
-	configuration := Configuration{}
-	err := decoder.Decode(&configuration)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	return configuration
-}
-
-func checkTrackingId(trackingId string, allowed []string) bool {
-	if len(allowed) == 0 {
-		return true
-	}
-	for _, item := range allowed {
-		if item == trackingId {
-			return true
-		}
-	}
-	return false
 }
