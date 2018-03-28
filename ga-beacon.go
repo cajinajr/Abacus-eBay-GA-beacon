@@ -15,8 +15,8 @@ import (
 	"appengine/delay"
 	"appengine/urlfetch"
 
-	"encoding/json"
-	"os"
+/* 	"encoding/json"
+	"os" */
 )
 
 const beaconURL = "http://www.google-analytics.com/collect"
@@ -107,11 +107,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check allowed Tracking IDs
-	config := readConfig("conf.json")
+/* 	config := readConfig("conf.json")
 	if !checkTrackingId(params[0], config.TrackingIds) {
 		http.Error(w, "Forbidden, read https://github.com/cajinajr/Abacus-eBay-GA-beacon", 403)
 		return
-	}
+	} */
 
 	// activate referrer path if ?useReferer is used and if referer exists
 	if _, ok := query["useReferer"]; ok {
